@@ -58,5 +58,6 @@ def visualizar_banco(banco: str):
     plt.savefig('banco_gabor.png', dpi=150)
     plt.show()
 
-banco = gerar_banco('config/gabor_bank.json')
-visualizar_banco(banco)
+if __name__ == "__main__":
+    banco = gerar_banco('config/gabor_bank.json')
+    visualizar_banco(banco)
