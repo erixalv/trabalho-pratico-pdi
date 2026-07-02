@@ -13,20 +13,19 @@ def suavizar(imagem_gray, caminho_filtros):
 def calcular_gradiente(imagem_suavizada, caminho_filtros):
     filtros = carregar_filtros(caminho_filtros)
 
-    gradiente_x = correlacao_2d(imagem_suavizada, filtros["sobel_horizontal"])
-    gradiente_y = correlacao_2d(imagem_suavizada, filtros["sobel_vertical"])
+    gradiente_vertical   = correlacao_2d(imagem_suavizada, filtros["sobel_horizontal"])
+    gradiente_horizontal = correlacao_2d(imagem_suavizada, filtros["sobel_vertical"])
 
-    magnitude = np.sqrt(gradiente_x**2 + gradiente_y**2)
-
-    angulo = np.rad2deg(np.arctan2(gradiente_y, gradiente_x))
+    magnitude = np.sqrt(gradiente_vertical**2 + gradiente_horizontal**2)
+    angulo    = np.rad2deg(np.arctan2(gradiente_vertical, gradiente_horizontal))
 
     #mapeia o array e cada angulo que for menor que zero, é somado 180
     angulo[angulo < 0] += 180
 
     angulo_q = np.zeros_like(angulo)
-    angulo_q[(angulo < 22.5) | (angulo >= 127.5)] = 0
+    angulo_q[(angulo < 22.5) | (angulo >= 157.5)] = 0
     angulo_q[(angulo >= 22.5) & (angulo < 67.5)] = 45
-    angulo_q[(angulo >= 67.5) & (angulo < 127.5)] = 90
+    angulo_q[(angulo >= 67.5) & (angulo < 112.5)] = 90
     angulo_q[(angulo >= 127.5) & (angulo  < 157.5)] = 135
 
     return magnitude, angulo_q
@@ -42,24 +41,24 @@ def nms(magnitude: np.ndarray, angulo_quantizado: np.ndarray):
             if ang == 0:
                 vizinho_um = magnitude[i, j-1]
                 vizinho_dois = magnitude[i, j+1]
-            if ang == 45:
+            elif ang == 45:
                 vizinho_um = magnitude[i-1, j+1]
                 vizinho_dois = magnitude[i+1, j-1]
-            if ang == 90:
+            elif ang == 90:
                 vizinho_um = magnitude[i-1, j]
                 vizinho_dois = magnitude[i+1, j]
-            if ang == 135:
+            elif ang == 135:
                 vizinho_um = magnitude[i-1, j-1]
                 vizinho_dois = magnitude[i+1, j+1]
 
-            if magnitude[i, j] >= vizinho_um and magnitude[i, j] >= vizinho_dois:
+            elif magnitude[i, j] >= vizinho_um and magnitude[i, j] >= vizinho_dois:
                 saida[i, j] = magnitude[i, j]
 
     return saida
 
 def histerese(magnitude_nms: np.ndarray, t_high: float, t_low: float):  
     forte = (magnitude_nms >= t_high)
-    fraca = (magnitude_nms >= t_low) & (magnitude_nms <= t_high)
+    fraca = (magnitude_nms >= t_low) & (magnitude_nms < t_high)
 
     saida = np.zeros_like(magnitude_nms, dtype=np.uint8)
     saida[forte] = 255
