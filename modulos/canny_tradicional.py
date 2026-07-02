@@ -34,24 +34,35 @@ def nms(magnitude: np.ndarray, angulo_quantizado: np.ndarray):
     H, W = magnitude.shape
     saida = np.zeros_like(magnitude)
 
-    for i in range(1, H-1):
-        for j in range(1, W-1):
+    pixels_altos = np.argwhere(magnitude > 100)
+    print(f"pixels com magnitude > 100: {len(pixels_altos)}")
+    if len(pixels_altos) > 0:
+        i, j = pixels_altos[0]
+        print(f"  exemplo: ({i},{j}) mag={magnitude[i,j]:.2f} ang={angulo_quantizado[i,j]}")
+        print(f"  vizinho cima ({i-1},{j}): {magnitude[i-1,j]:.2f}")
+        print(f"  vizinho baixo ({i+1},{j}): {magnitude[i+1,j]:.2f}")
+        
+
+    for i in range(H):
+        for j in range(W):
             ang = angulo_quantizado[i, j]
 
             if ang == 0:
-                vizinho_um = magnitude[i, j-1]
-                vizinho_dois = magnitude[i, j+1]
+                v1 = magnitude[i, j-1] if j > 0 else 0
+                v2 = magnitude[i, j+1] if j < W-1 else 0
             elif ang == 45:
-                vizinho_um = magnitude[i-1, j+1]
-                vizinho_dois = magnitude[i+1, j-1]
+                v1 = magnitude[i-1, j+1] if i > 0 and j < W-1 else 0
+                v2 = magnitude[i+1, j-1] if i < H-1 and j > 0 else 0
             elif ang == 90:
-                vizinho_um = magnitude[i-1, j]
-                vizinho_dois = magnitude[i+1, j]
+                v1 = magnitude[i-1, j] if i > 0 else 0
+                v2 = magnitude[i+1, j] if i < H-1 else 0
             elif ang == 135:
-                vizinho_um = magnitude[i-1, j-1]
-                vizinho_dois = magnitude[i+1, j+1]
+                v1 = magnitude[i-1, j-1] if i > 0 and j > 0 else 0
+                v2 = magnitude[i+1, j+1] if i < H-1 and j < W-1 else 0
+            else:
+                continue
 
-            elif magnitude[i, j] >= vizinho_um and magnitude[i, j] >= vizinho_dois:
+            if magnitude[i, j] >= v1 and magnitude[i, j] >= v2:
                 saida[i, j] = magnitude[i, j]
 
     return saida
@@ -80,8 +91,21 @@ def histerese(magnitude_nms: np.ndarray, t_high: float, t_low: float):
 
 def canny_tradicional(imagem_rgb, t_high, t_low, caminho_filtros):
     cinza = rgb_para_cinza(imagem_rgb)
+    print(f"cinza min: {cinza.min():.2f}, max: {cinza.max():.2f}")
+
     suavizada = suavizar(cinza, caminho_filtros)
+    print(f"suavizada min: {suavizada.min():.2f}, max: {suavizada.max():.2f}")
+
     magnitude, angulo_q = calcular_gradiente(suavizada, caminho_filtros)
+    print(f"magnitude min: {magnitude.min():.2f}, max: {magnitude.max():.2f}")
+    print(f"angulos unicos: {np.unique(angulo_q)}")
+
     mag_nms = nms(magnitude, angulo_q)
+    print(f"mag_nms min: {mag_nms.min():.2f}, max: {mag_nms.max():.2f}")
+    print(f"pixels nao-zero no nms: {np.count_nonzero(mag_nms)}")
+
     bordas = histerese(mag_nms, t_high, t_low)
+    print(f"pixels de borda: {np.count_nonzero(bordas)}")
+    print(f"t_high={t_high}, t_low={t_low}")
+
     return bordas
